@@ -51,14 +51,28 @@ resource "google_compute_instance" "todo_app_vm" {
     enable-oslogin = "TRUE"
   }
 
-  metadata_startup_script = <<-EOF
+  metadata_startup_script = <<-EOT
     #!/bin/bash
-    apt-get update
+    apt-get update -y
     apt-get install -y docker.io
-    systemctl start docker
-    systemctl enable docker
-    docker run -d -p 8080:8080 --name todo-app your-jfrog-repo/todo-app:latest
-  EOF
+    
+    # Create a directory for the application
+    mkdir -p /app
+    
+    # Run the Docker container with proper port mapping and environment
+    docker run -d \
+      --name todo-app \
+      -p 80:8080 \
+      -e SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb \
+      -e SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver \
+      -e SPRING_DATASOURCE_USERNAME=sa \
+      -e SPRING_DATASOURCE_PASSWORD=password \
+      -e SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop \
+      -e SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect \
+      jyotsnayadagiri/mavenjy:latest
+  EOT
+}
 
   tags = ["http-server", "ssh"]
+
 }
