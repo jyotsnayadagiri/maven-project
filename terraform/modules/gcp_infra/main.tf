@@ -72,3 +72,7 @@ resource "google_compute_firewall" "allow_ssh" {
   source_ranges = ["0.0.0.0/0"]
   target_tags   = ["ssh"]
 }
+output "vm_instance_ip" {
+  description = "Public IP address of the VM instance"
+  value       = google_compute_instance.vm.network_interface[0].access_config[0].nat_ip
+}
