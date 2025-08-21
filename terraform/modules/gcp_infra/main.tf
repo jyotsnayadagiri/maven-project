@@ -1,4 +1,4 @@
-# Create a service account for provisioner
+ Create a service account for provisioner
 resource "google_service_account" "provisioner_sa" {
   account_id   = "provisioner-sa"
   display_name = "Service Account for Provisioner"
@@ -50,7 +50,6 @@ resource "google_compute_instance" "todo_app_vm" {
   metadata = {
     enable-oslogin = "TRUE"
   }
-
   metadata_startup_script = <<-EOT
     #!/bin/bash
     apt-get update -y
@@ -76,3 +75,4 @@ resource "google_compute_instance" "todo_app_vm" {
   tags = ["http-server", "ssh"]
 
 }
+
