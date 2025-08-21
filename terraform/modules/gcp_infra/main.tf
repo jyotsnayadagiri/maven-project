@@ -1,45 +1,25 @@
- Create a service account for provisioner
 resource "google_service_account" "provisioner_sa" {
   account_id   = "provisioner-sa"
-  display_name = "Service Account for Provisioner"
+  display_name = "Provisioner Service Account"
 }
 
-# Create a VPC network
-resource "google_compute_network" "todo_app_network" {
-  name                    = var.network_name
-  auto_create_subnetworks = true
-}
-
-# Create a firewall rule
-resource "google_compute_firewall" "todo_app_firewall" {
-  name    = "${var.network_name}-firewall"
-  network = google_compute_network.todo_app_network.name
-
-  allow {
-    protocol = "tcp"
-    ports    = var.firewall_ports
-  }
-
-  source_ranges = ["0.0.0.0/0"]
-}
-
-# Create a VM instance
-resource "google_compute_instance" "todo_app_vm" {
-  name         = var.vm_name
-  machine_type = var.machine_type
-  zone         = var.zone
+resource "google_compute_instance" "vm" {
+  name         = "notes-vm"
+  machine_type = "e2-micro"
+  zone         = "us-west1-a"
+  
+  # TAGS MUST BE INSIDE THE RESOURCE BLOCK
+  tags = ["http-server", "ssh"]
 
   boot_disk {
     initialize_params {
-      image = var.image
+      image = "debian-cloud/debian-12"
     }
   }
 
   network_interface {
-    network = google_compute_network.todo_app_network.name
-    access_config {
-      // Ephemeral public IP
-    }
+    network = "default"
+    access_config {}
   }
 
   service_account {
@@ -47,18 +27,12 @@ resource "google_compute_instance" "todo_app_vm" {
     scopes = ["cloud-platform"]
   }
 
-  metadata = {
-    enable-oslogin = "TRUE"
-  }
   metadata_startup_script = <<-EOT
     #!/bin/bash
     apt-get update -y
     apt-get install -y docker.io
     
-    # Create a directory for the application
-    mkdir -p /app
-    
-    # Run the Docker container with proper port mapping and environment
+    # Run the Docker container
     docker run -d \
       --name todo-app \
       -p 80:8080 \
@@ -72,7 +46,29 @@ resource "google_compute_instance" "todo_app_vm" {
   EOT
 }
 
-  tags = ["http-server", "ssh"]
+# Firewall rules outside the instance resource
+resource "google_compute_firewall" "allow_http" {
+  name    = "allow-http-80"
+  network = "default"
 
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["http-server"]
 }
 
+resource "google_compute_firewall" "allow_ssh" {
+  name    = "allow-ssh"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["ssh"]
+}
